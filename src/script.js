@@ -9,29 +9,11 @@ const sizes = {
 // scene
 const scene = new THREE.Scene()
 
-// group
-const group = new THREE.Group()
-group.position.y = 1
-scene.add(group)
-
-const cube1 = new THREE.Mesh(
-  new THREE.BoxGeometry(1, 1, 1),
-  new THREE.MeshBasicMaterial({ color: 0xFF0000 })
-)
-
-const cube2 = new THREE.Mesh(
-  new THREE.BoxGeometry(1, 1, 1),
-  new THREE.MeshBasicMaterial({ color: 0x00FF00 })
-  )
-cube2.position.x = -1;
-const cube3 = new THREE.Mesh(
-  new THREE.BoxGeometry(1, 1, 1),
-  new THREE.MeshBasicMaterial({ color: 0x0000FF })
-)
-cube3.position.x = 1;
-group.add(cube1)
-group.add(cube2)
-group.add(cube3)
+// box
+const geometry = new THREE.BoxGeometry(1, 1, 1)
+const material = new THREE.MeshBasicMaterial({ color: 0xFF0000 })
+const mesh = new THREE.Mesh(geometry, material)
+scene.add(mesh)
 
 // axes helper
 const axesHelper = new THREE.AxesHelper()
@@ -48,4 +30,20 @@ const renderer = new THREE.WebGL1Renderer()
 renderer.setSize(sizes.width, sizes.height)
 document.body.appendChild(renderer.domElement)
 
-renderer.render(scene, camera)
+// animation
+
+let time = Date.now()
+
+const tick = () => {
+  const currentTime = Date.now()
+  const delta = currentTime - time
+  time = currentTime
+  console.log(delta)
+
+  mesh.rotation.y += 0.002 * delta
+
+  renderer.render(scene, camera)
+  window.requestAnimationFrame(tick)
+}
+
+tick()
