@@ -2,6 +2,8 @@ import * as THREE from 'three'
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
 import './style.css'
 
+const canvas = document.getElementById("webgl")
+
 const cursor = {
   x: 0,
   y: 0
@@ -16,6 +18,27 @@ const sizes = {
   width: window.innerWidth,
   height: window.innerHeight
 }
+
+// handle window resize
+window.addEventListener("resize", () => {
+  sizes.width = window.innerWidth
+  sizes.height = window.innerHeight
+  camera.aspect = sizes.width / sizes.height
+  camera.updateProjectionMatrix()
+  renderer.setSize(sizes.width, sizes.height)
+})
+
+window.addEventListener("dblclick", () => {
+  const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement
+
+  if (!fullscreenElement) {
+    if (canvas.requestFullscreen) canvas.requestFullscreen()
+    else if (canvas.webkitRequestFullscreen) canvas.webkitRequestFullscreen()
+  } else {
+    if (document.exitFullscreen) document.exitFullscreen()
+    else if (document.webkitExitFullscreen()) document.webkitExitFullscreen()
+  }
+})
 
 // scene
 const scene = new THREE.Scene()
@@ -36,8 +59,9 @@ camera.position.set(0, 0, 3)
 scene.add(camera)
 
 // renderer
-const renderer = new THREE.WebGL1Renderer()
+const renderer = new THREE.WebGL1Renderer({ canvas })
 renderer.setSize(sizes.width, sizes.height)
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 document.body.appendChild(renderer.domElement)
 
 // controls
