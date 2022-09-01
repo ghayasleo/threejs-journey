@@ -4,6 +4,6 @@
   box-sizing: border-box;
 }
 
-#webgl {
+canvas {
   display: block;
 }
