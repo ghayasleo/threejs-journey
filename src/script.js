@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import gsap from 'gsap'
 import './style.css'
 
 const sizes = {
@@ -11,7 +12,26 @@ const scene = new THREE.Scene()
 
 // box
 const geometry = new THREE.BoxGeometry(1, 1, 1)
-const material = new THREE.MeshBasicMaterial({ color: 0xFF0000 })
+
+const positionAttribute = geometry.getAttribute('position');
+const colors = [];
+
+const color = new THREE.Color();
+
+for (let i = 0; i < positionAttribute.count; i += 6) {
+
+  color.setHex(0xffffff * Math.random());
+
+  colors.push(color.r, color.g, color.b);
+  colors.push(color.r, color.g, color.b);
+  colors.push(color.r, color.g, color.b);
+
+  colors.push(color.r, color.g, color.b);
+  colors.push(color.r, color.g, color.b);
+  colors.push(color.r, color.g, color.b);
+}
+geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+const material = new THREE.MeshBasicMaterial({ vertexColors: true })
 const mesh = new THREE.Mesh(geometry, material)
 scene.add(mesh)
 
@@ -22,7 +42,6 @@ scene.add(axesHelper)
 // camera
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height)
 camera.position.set(1, 1, 3)
-camera.lookAt(new THREE.Vector3(0, 0, 0))
 scene.add(camera)
 
 // renderer
@@ -32,15 +51,14 @@ document.body.appendChild(renderer.domElement)
 
 // animation
 
-let time = Date.now()
+const clock = new THREE.Clock()
 
 const tick = () => {
-  const currentTime = Date.now()
-  const delta = currentTime - time
-  time = currentTime
-  console.log(delta)
+  const elapsed = clock.getElapsedTime()
 
-  mesh.rotation.y += 0.002 * delta
+  camera.position.x = Math.cos(elapsed)
+  camera.position.y = Math.sin(elapsed)
+  camera.lookAt(mesh.position)
 
   renderer.render(scene, camera)
   window.requestAnimationFrame(tick)
