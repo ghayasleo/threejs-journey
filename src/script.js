@@ -1,6 +1,16 @@
 import * as THREE from 'three'
-import gsap from 'gsap'
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
 import './style.css'
+
+const cursor = {
+  x: 0,
+  y: 0
+}
+
+window.addEventListener("mousemove", (e) => {
+  cursor.x = e.clientX / sizes.width - 0.5
+  cursor.y = e.clientY / sizes.height - 0.5
+})
 
 const sizes = {
   width: window.innerWidth,
@@ -12,26 +22,7 @@ const scene = new THREE.Scene()
 
 // box
 const geometry = new THREE.BoxGeometry(1, 1, 1)
-
-const positionAttribute = geometry.getAttribute('position');
-const colors = [];
-
-const color = new THREE.Color();
-
-for (let i = 0; i < positionAttribute.count; i += 6) {
-
-  color.setHex(0xffffff * Math.random());
-
-  colors.push(color.r, color.g, color.b);
-  colors.push(color.r, color.g, color.b);
-  colors.push(color.r, color.g, color.b);
-
-  colors.push(color.r, color.g, color.b);
-  colors.push(color.r, color.g, color.b);
-  colors.push(color.r, color.g, color.b);
-}
-geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-const material = new THREE.MeshBasicMaterial({ vertexColors: true })
+const material = new THREE.MeshBasicMaterial({ color: 0xFF0000 })
 const mesh = new THREE.Mesh(geometry, material)
 scene.add(mesh)
 
@@ -41,7 +32,7 @@ scene.add(axesHelper)
 
 // camera
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height)
-camera.position.set(1, 1, 3)
+camera.position.set(0, 0, 3)
 scene.add(camera)
 
 // renderer
@@ -49,12 +40,15 @@ const renderer = new THREE.WebGL1Renderer()
 renderer.setSize(sizes.width, sizes.height)
 document.body.appendChild(renderer.domElement)
 
+// controls
+const controls = new OrbitControls(camera, renderer.domElement)
+controls.enableDamping = true;
+
 // animation
 
-gsap.to(mesh.position, { duration: 1, delay: 1, x: 2 })
-gsap.to(mesh.position, { duration: 1, delay: 2, x: 0 })
-
 const tick = () => {
+  controls.update()
+
   renderer.render(scene, camera)
   window.requestAnimationFrame(tick)
 }
