@@ -44,14 +44,29 @@ window.addEventListener("dblclick", () => {
 const scene = new THREE.Scene()
 
 // box
-const geometry = new THREE.BoxGeometry(1, 1, 1)
-const material = new THREE.MeshBasicMaterial({ color: 0xFF0000 })
+// const positionsArray = new Float32Array([
+//   0, 0, 0,
+//   0, 1, 0,
+//   1, 0, 0
+// ])
+
+// const positionAttr = new THREE.BufferAttribute(positionsArray, 3)
+
+const geometry = new THREE.BufferGeometry()
+const count = 50
+const positionsArray = new Float32Array(count * 3 * 3)
+for (let i = 0; i < count * 3 * 3; i++) {
+  positionsArray[i] = (Math.random() - 0.5) * 2
+}
+const positionAttr = new THREE.BufferAttribute(positionsArray, 3)
+geometry.setAttribute("position", positionAttr)
+const material = new THREE.MeshBasicMaterial({ color: 0xFF0000, wireframe: true })
 const mesh = new THREE.Mesh(geometry, material)
 scene.add(mesh)
 
 // axes helper
 const axesHelper = new THREE.AxesHelper()
-scene.add(axesHelper)
+// scene.add(axesHelper)
 
 // camera
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height)
