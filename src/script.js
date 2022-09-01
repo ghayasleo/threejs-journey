@@ -51,17 +51,14 @@ document.body.appendChild(renderer.domElement)
 
 // animation
 
-const clock = new THREE.Clock()
+gsap.to(mesh.position, { duration: 1, delay: 1, x: 2 })
+gsap.to(mesh.position, { duration: 1, delay: 2, x: 0 })
 
 const tick = () => {
-  const elapsed = clock.getElapsedTime()
-
-  camera.position.x = Math.cos(elapsed)
-  camera.position.y = Math.sin(elapsed)
-  camera.lookAt(mesh.position)
-
   renderer.render(scene, camera)
   window.requestAnimationFrame(tick)
 }
+
+renderer.render(scene, camera)
 
 tick()
