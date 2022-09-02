@@ -3,6 +3,37 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
 import * as dat from "lil-gui"
 import './style.css'
 
+// loader
+const loadingManager = new THREE.LoadingManager()
+
+loadingManager.onStart = () => console.log("started")
+loadingManager.onProgress = () => console.log("loading")
+loadingManager.onLoad = () => console.log("loaded")
+loadingManager.onError = () => console.log("error occured")
+
+// texture
+const textureLoader = new THREE.TextureLoader(loadingManager)
+
+const ambientOcclusionTexture = textureLoader.load("/texture/ambientOcclusion.jpg")
+const colorTexture = textureLoader.load("/texture/color.jpg")
+const heightTexture = textureLoader.load("/texture/height.png")
+const materialTexture = textureLoader.load("/texture/material.png")
+const metallicTexture = textureLoader.load("/texture/metallic.jpg")
+const normalTexture = textureLoader.load("/texture/normal.jpg")
+const opacityTexture = textureLoader.load("/texture/opacity.jpg")
+const roughnessTexture = textureLoader.load("/texture/roughness.jpg")
+
+// colorTexture.repeat.x = 2
+// colorTexture.repeat.y = 3
+// colorTexture.wrapS = THREE.MirroredRepeatWrapping
+// colorTexture.wrapT = THREE.MirroredRepeatWrapping
+// colorTexture.offset.x = 0.5
+// colorTexture.offset.y = 0.5
+// colorTexture.rotation = Math.PI * 0.25
+// colorTexture.center.set(0.5, 0.5)
+
+colorTexture.minFilter = THREE.NearestFilter
+
 // debug
 const gui = new dat.GUI()
 
@@ -39,8 +70,9 @@ window.addEventListener("dblclick", () => {
 // scene
 const scene = new THREE.Scene()
 
-const geometry = new THREE.BoxGeometry()
-const material = new THREE.MeshBasicMaterial({ color: 0xFF0000, wireframe: true })
+// box
+const geometry = new THREE.BoxBufferGeometry()
+const material = new THREE.MeshBasicMaterial({ map: colorTexture })
 const mesh = new THREE.Mesh(geometry, material)
 scene.add(mesh)
 
@@ -71,13 +103,13 @@ gui.addColor(material, "color")
 
 // animation
 
-const tick = () => {
+const animate = () => {
   controls.update()
 
   renderer.render(scene, camera)
-  window.requestAnimationFrame(tick)
+  window.requestAnimationFrame(animate)
 }
 
 renderer.render(scene, camera)
 
-tick()
+animate()
