@@ -2,6 +2,12 @@ import './style.css'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import * as dat from 'lil-gui'
+import { MeshBasicMaterial } from 'three'
+
+// texture
+const textureLoader = new THREE.TextureLoader()
+const bakedShadow = textureLoader.load("/textures/shadows/baked.jpg")
+const simpleShadow = textureLoader.load("/textures/shadows/simple.jpg")
 
 // debug
 const gui = new dat.GUI()
@@ -13,37 +19,38 @@ const canvas = document.querySelector('#webgl')
 const scene = new THREE.Scene()
 
 // lights
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.05)
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
+gui.add(ambientLight, 'intensity').min(0).max(1).step(0.001)
 scene.add(ambientLight)
 
-const directionalLight = new THREE.DirectionalLight(0xFFFFFC, 0.3)
-directionalLight.position.set(1, 0.25, 0)
-// scene.add(directionalLight)
+// Directional light
+const directionalLight = new THREE.SpotLight(0xffffff, 0.5)
+directionalLight.position.set(2, 2, - 1)
+directionalLight.castShadow = true
+directionalLight.shadow.mapSize.set(1024, 1024)
+directionalLight.shadow.camera.near = 1
+directionalLight.shadow.camera.far = 5
+directionalLight.shadow.camera.top = 1
+directionalLight.shadow.camera.right = 1
+directionalLight.shadow.camera.bottom = -1
+directionalLight.shadow.camera.left = -1
 
-const hemisphereLight = new THREE.HemisphereLight(0xFF0000, 0x0000FF, 0.5)
-// scene.add(hemisphereLight)
+gui.add(directionalLight, 'intensity').min(0).max(1).step(0.001)
+gui.add(directionalLight.position, 'x').min(- 5).max(5).step(0.001)
+gui.add(directionalLight.position, 'y').min(- 5).max(5).step(0.001)
+gui.add(directionalLight.position, 'z').min(- 5).max(5).step(0.001)
+scene.add(directionalLight)
 
-const pointLight = new THREE.PointLight(0xFF9000, 0.7, 2.5)
-pointLight.position.set(1, -0.5, 1)
-const lightHelper = new THREE.PointLightHelper(pointLight)
-
-// scene.add(pointLight, lightHelper)
-
-const rectAreaLight = new THREE.RectAreaLight(0x4E00FF, 2, 3, 1)
-rectAreaLight.position.set(-1.5, 0, 1.5)
-rectAreaLight.lookAt(new THREE.Vector3())
-// scene.add(rectAreaLight)
-
-const spotLight = new THREE.SpotLight(0x78FF00, 0.5, 10, Math.PI * 0.2, 0.1, 0.25,  1)
-spotLight.position.set(0, 1, 1)
-const spotLightHelper = new THREE.SpotLightHelper(spotLight)
-scene.add(spotLight, spotLightHelper)
+const directionalLightCameraHelper = new THREE.CameraHelper(directionalLight.shadow.camera)
+scene.add(directionalLightCameraHelper)
 
 // objects
 
 // Material
 const material = new THREE.MeshStandardMaterial()
-material.roughness = 0.4
+material.roughness = 0.7
+gui.add(material, 'metalness').min(0).max(1).step(0.001)
+gui.add(material, 'roughness').min(0).max(1).step(0.001)
 material.side = THREE.DoubleSide
 
 // geometry
@@ -51,27 +58,17 @@ const sphere = new THREE.Mesh(
   new THREE.SphereGeometry(0.5, 32, 32),
   material
 )
-sphere.position.x = - 1.5
-
-const cube = new THREE.Mesh(
-  new THREE.BoxGeometry(0.75, 0.75, 0.75),
-  material
-)
-
-const torus = new THREE.Mesh(
-  new THREE.TorusGeometry(0.3, 0.2, 32, 64),
-  material
-)
-torus.position.x = 1.5
+sphere.castShadow = true
 
 const plane = new THREE.Mesh(
   new THREE.PlaneGeometry(5, 5),
-  material
+  new MeshBasicMaterial({ map: bakedShadow })
 )
 plane.rotation.x = - Math.PI * 0.5
-plane.position.y = - 0.65
+plane.position.y = - 0.5
+plane.receiveShadow = true
 
-scene.add(sphere, cube, torus, plane)
+scene.add(sphere, plane)
 
 // sizes
 const sizes = {
@@ -111,29 +108,20 @@ const renderer = new THREE.WebGLRenderer({
 })
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+renderer.shadowMap.enabled = false
+renderer.shadowMap.type = THREE.PCFSoftShadowMap
 
 // animation
 const clock = new THREE.Clock()
 
 const animation = () => {
-  const elapsedTime = clock.getElapsedTime()
-
-  // Update objects
-  sphere.rotation.y = 0.1 * elapsedTime
-  cube.rotation.y = 0.1 * elapsedTime
-  torus.rotation.y = 0.1 * elapsedTime
-
-  sphere.rotation.x = 0.15 * elapsedTime
-  cube.rotation.x = 0.15 * elapsedTime
-  torus.rotation.x = 0.15 * elapsedTime
-
-  // Update controls
+  // update controls
   controls.update()
 
-  // Render
+  // render
   renderer.render(scene, camera)
 
-  // Call tick again on the next frame
+  // call animation again on the next frame
   window.requestAnimationFrame(animation)
 }
 
