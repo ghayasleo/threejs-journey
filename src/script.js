@@ -6,44 +6,56 @@ import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js"
 import * as dat from 'lil-gui'
 
 const textureLoader = new THREE.TextureLoader()
-const matcapTexture = textureLoader.load("/textures/matcaps/1.png")
+const texture1 = textureLoader.load("/textures/matcaps/1.png")
+const texture2 = textureLoader.load("/textures/matcaps/2.png")
+const texture3 = textureLoader.load("/textures/matcaps/3.png")
+const texture4 = textureLoader.load("/textures/matcaps/4.png")
+const texture5 = textureLoader.load("/textures/matcaps/5.png")
+const texture6 = textureLoader.load("/textures/matcaps/6.png")
+const texture7 = textureLoader.load("/textures/matcaps/7.png")
+const texture8 = textureLoader.load("/textures/matcaps/8.png")
+const textures = [
+  texture1,
+  texture2,
+  texture3,
+  texture4,
+  texture5,
+  texture6,
+  texture7,
+  texture8,
+]
+
+console.log((Math.random() * 8).toFixed(0))
 
 // font loading
 const fontLoader = new FontLoader()
 fontLoader.load("/fonts/telvetica_regular.typeface.json", (font) => {
+  console.time('time')
+
   const textGeometry = new TextGeometry("Ghayas", {
     font,
     size: 0.5,
     height: 0.2,
-    curveSegments: 3,
+    curveSegments: 10,
     bevelEnabled: true,
     bevelThickness: 0.03,
     bevelSize: 0.02,
     bevelOffset: 0,
-    bevelSegments: 3
+    bevelSegments: 10
   })
-  // centering ( method 1 )
-  // textGeometry.computeBoundingBox()
-  // const max = textGeometry.boundingBox.max
-  // const bevel = textGeometry.parameters.options.bevelSize
-  // const thickness = textGeometry.parameters.options.bevelThickness
-  // textGeometry.translate(-(max.x - bevel) * 0.5, -(max.y - bevel) * 0.5, -(max.z - thickness) * 0.5)
-
-  // centering ( method 2 )
   textGeometry.center()
 
-  const material = new THREE.MeshMatcapMaterial({ matcap: matcapTexture })
-  material.side = THREE.DoubleSide
+  const textMaterial = new THREE.MeshMatcapMaterial({ matcap: texture1 })
+  textMaterial.side = THREE.DoubleSide
 
-  const text = new THREE.Mesh(textGeometry, material)
+  const text = new THREE.Mesh(textGeometry, textMaterial)
   scene.add(text)
-
-  console.time('donuts')
 
   const donutGeometry = new THREE.TorusBufferGeometry(0.3, 0.2, 20, 45)
 
   for (let i = 0; i <= 100; i++) {
-    const donut = new THREE.Mesh(donutGeometry, material)
+    const donutMaterial = new THREE.MeshMatcapMaterial({ matcap: textures[(Math.random() * 8).toFixed(0)] })
+    const donut = new THREE.Mesh(donutGeometry, donutMaterial)
     donut.position.x = (Math.random() - 0.5) * 10
     donut.position.y = (Math.random() - 0.5) * 10
     donut.position.z = (Math.random() - 0.5) * 10
@@ -55,7 +67,7 @@ fontLoader.load("/fonts/telvetica_regular.typeface.json", (font) => {
     donut.rotation.y = Math.random() * Math.PI
     scene.add(donut)
   }
-  console.timeEnd('donuts')
+  console.timeEnd('time')
 })
 
 //debug
@@ -90,9 +102,7 @@ window.addEventListener('resize', () => {
 
 // camera
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
-camera.position.x = 1
-camera.position.y = 1
-camera.position.z = 2
+camera.position.z = 3
 scene.add(camera)
 
 // controls
