@@ -22,44 +22,66 @@ const textureLoader = new THREE.TextureLoader()
 
 const particle = textureLoader.load("/textures/particles/2.png")
 
-// Particles
-const particleGeometry = new THREE.BufferGeometry(1, 32, 32);
-const count = 50000
-
-const positions = new Float32Array(count * 3)
-const colors = new Float32Array(count * 3)
-
-for (let i = 0; i < count * 3; i++) {
-  positions[i] = (Math.random() - 0.5) * 10
-  colors[i] = Math.random()
-}
-particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
-
-console.log(particleGeometry)
-const particleMaterial = new THREE.PointsMaterial({
-  size: 0.1,
-  sizeAttenuation: true,
-  map: particle,
-  transparent: true,
-  alphaMap: particle,
-  alphaTest: 0.001,
-  depthTest: false,
-  blending: THREE.AdditiveBlending,
-  vertexColors: true
-})
-const particles = new THREE.Points(particleGeometry, particleMaterial)
-scene.add(particles)
-
 // /**
-//  * Test cube
+//  * Galaxy
 //  */
+const props = {
+  count: 100000,
+  size: 0.01,
+  radius: 5,
+  branches: 3,
+  spin: 1
+}
 
- const cube = new THREE.Mesh(
-  new THREE.BoxGeometry(),
-  new THREE.MeshBasicMaterial()
-)
-scene.add(cube)
+let geometry = null,
+  material = null,
+  points = null;
+
+const generateGalaxy = () => {
+
+  // destroy old galaxy
+  if (points !== null) {
+    geometry.dispose();
+    material.dispose();
+    scene.remove(points)
+  }
+
+  // geometry
+  geometry = new THREE.BufferGeometry()
+  const positions = new Float32Array(props.count * 3)
+  for (let i = 0; i < props.count; i++) {
+    const i3 = i * 3
+    const radius = Math.random() * props.radius
+    const spinAngle = radius * props.spin
+    const branchAngle = (i % props.branches) / props.branches * Math.PI * 2
+
+    positions[i3] = Math.cos(branchAngle + spinAngle) * radius
+    positions[i3 + 1] = 0
+    positions[i3 + 2] = Math.sin(branchAngle + spinAngle) * radius
+  }
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3))
+
+  // material
+  material = new THREE.PointsMaterial({
+    size: props.size,
+    sizeAttenuation: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  })
+
+  // point
+  points = new THREE.Points(geometry, material)
+  scene.add(points)
+}
+
+generateGalaxy()
+
+// debug setting
+gui.add(props, "count", 10, 100000, 10).onFinishChange(generateGalaxy)
+gui.add(props, "size", 0.01, 0.1, 0.01).onFinishChange(generateGalaxy)
+gui.add(props, "radius", 0.001, 20, 0.01).onFinishChange(generateGalaxy)
+gui.add(props, "branches", 3, 20, 1).onFinishChange(generateGalaxy)
+gui.add(props, "spin", -5, 5, 0.01).onFinishChange(generateGalaxy)
 
 /**
  * Sizes
@@ -111,17 +133,6 @@ const clock = new THREE.Clock()
 
 const animation = () => {
   const elapsedTime = clock.getElapsedTime()
-
-  // particles.rotation.x = Math.cos(elapsedTime) * 0.1
-  // particles.rotation.y = Math.sin(elapsedTime) * 0.1
-  // particles.rotation.z = Math.cos(elapsedTime) * 0.1
-
-  for (let i = 0; i < count; i++) {
-    const i3 = i * 3
-    const x = particleGeometry.attributes.position.array[i3]
-    particleGeometry.attributes.position.array[i3 + 1] = Math.sin(elapsedTime + x)
-  }
-  particleGeometry.attributes.position.needsUpdate = true
 
   // Update controls
   controls.update()
