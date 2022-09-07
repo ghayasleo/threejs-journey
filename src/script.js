@@ -1,14 +1,27 @@
 import './style.css'
 import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import * as dat from 'lil-gui'
+import gsap from 'gsap'
+
+/**
+ * Debug
+ */
+const gui = new dat.GUI()
+
+const parameters = {
+  materialColor: '#ffeded'
+}
+
+gui
+  .addColor(parameters, 'materialColor')
+  .onChange(() => {
+    material.color.set(parameters.materialColor)
+    particlesMaterial.color.set(parameters.materialColor)
+  })
 
 /**
  * Base
  */
-// Debug
-const gui = new dat.GUI()
-
 // Canvas
 const canvas = document.querySelector('#webgl')
 
@@ -16,95 +29,79 @@ const canvas = document.querySelector('#webgl')
 const scene = new THREE.Scene()
 
 /**
- * Textures
+ * Objects
  */
+// Texture
 const textureLoader = new THREE.TextureLoader()
+const gradientTexture = textureLoader.load('textures/gradients/3.jpg')
+gradientTexture.magFilter = THREE.NearestFilter
 
-const particle = textureLoader.load("/textures/particles/2.png")
+// Material
+const material = new THREE.MeshToonMaterial({
+  color: parameters.materialColor,
+  gradientMap: gradientTexture
+})
 
-// /**
-//  * Galaxy
-//  */
-const props = {
-  count: 100000,
-  size: 0.01,
-  radius: 5,
-  branches: 3,
-  spin: 1,
-  randomness: 0.2,
-  randomnessPower: 3,
-  insideColor: "#FF6030",
-  outsideColor: "#1B3984"
+// Objects
+const objectsDistance = 4
+const mesh1 = new THREE.Mesh(
+  new THREE.TorusGeometry(1, 0.4, 16, 60),
+  material
+)
+const mesh2 = new THREE.Mesh(
+  new THREE.ConeGeometry(1, 2, 32),
+  material
+)
+const mesh3 = new THREE.Mesh(
+  new THREE.TorusKnotGeometry(0.8, 0.35, 100, 16),
+  material
+)
+
+mesh1.position.x = 2
+mesh2.position.x = - 2
+mesh3.position.x = 2
+
+mesh1.position.y = - objectsDistance * 0
+mesh2.position.y = - objectsDistance * 1
+mesh3.position.y = - objectsDistance * 2
+
+const sectionMeshes = [mesh1, mesh2, mesh3]
+scene.add(...sectionMeshes)
+
+
+/**
+ * Lights
+ */
+const directionalLight = new THREE.DirectionalLight('#ffffff', 1)
+directionalLight.position.set(1, 1, 0)
+scene.add(directionalLight)
+
+/**
+ * Particles
+ */
+// Geometry
+const particlesCount = 10000
+const positions = new Float32Array(particlesCount * 3)
+
+for (let i = 0; i < particlesCount; i++) {
+  positions[i * 3 + 0] = (Math.random() - 0.5) * 10
+  positions[i * 3 + 1] = objectsDistance * 0.5 - Math.random() * objectsDistance * sectionMeshes.length
+  positions[i * 3 + 2] = (Math.random() - 0.5) * 10
 }
 
-let geometry = null,
-  material = null,
-  points = null;
+const particlesGeometry = new THREE.BufferGeometry()
+particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
 
-const generateGalaxy = () => {
+// Material
+const particlesMaterial = new THREE.PointsMaterial({
+  color: parameters.materialColor,
+  sizeAttenuation: textureLoader,
+  size: 0.03
+})
 
-  // destroy old galaxy
-  if (points !== null) {
-    geometry.dispose();
-    material.dispose();
-    scene.remove(points)
-  }
-
-  // geometry
-  geometry = new THREE.BufferGeometry()
-  const positions = new Float32Array(props.count * 3),
-    colors = new Float32Array(props.count * 3),
-    colorInside = new THREE.Color(props.insideColor),
-    colorOutside = new THREE.Color(props.outsideColor)
-
-  for (let i = 0; i < props.count; i++) {
-    const i3 = i * 3,
-      radius = Math.random() * props.radius,
-      spinAngle = radius * props.spin,
-      branchAngle = (i % props.branches) / props.branches * Math.PI * 2,
-      randomX = Math.pow(Math.random(), props.randomnessPower) * (Math.random() < 0.5 ? 1 : - 1) * props.randomness * radius,
-      randomY = Math.pow(Math.random(), props.randomnessPower) * (Math.random() < 0.5 ? 1 : - 1) * props.randomness * radius,
-      randomZ = Math.pow(Math.random(), props.randomnessPower) * (Math.random() < 0.5 ? 1 : - 1) * props.randomness * radius,
-      mixedColor = colorInside.clone()
-    mixedColor.lerp(colorOutside, radius / props.radius)
-
-    positions[i3] = Math.cos(branchAngle + spinAngle) * radius + randomX
-    positions[i3 + 1] = randomY
-    positions[i3 + 2] = Math.sin(branchAngle + spinAngle) * radius + randomZ
-
-    colors[i3] = mixedColor.r
-    colors[i3 + 1] = mixedColor.g
-    colors[i3 + 2] = mixedColor.b
-  }
-  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3))
-  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3))
-
-  // material
-  material = new THREE.PointsMaterial({
-    size: props.size,
-    sizeAttenuation: true,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-    vertexColors: true,
-  })
-
-  // point
-  points = new THREE.Points(geometry, material)
-  scene.add(points)
-}
-
-generateGalaxy()
-
-// debug setting
-gui.add(props, 'count').min(100).max(1000000).step(100).onFinishChange(generateGalaxy)
-gui.add(props, 'size').min(0.001).max(0.1).step(0.001).onFinishChange(generateGalaxy)
-gui.add(props, 'radius').min(0.01).max(20).step(0.01).onFinishChange(generateGalaxy)
-gui.add(props, 'branches').min(2).max(20).step(1).onFinishChange(generateGalaxy)
-gui.add(props, 'spin').min(- 5).max(5).step(0.001).onFinishChange(generateGalaxy)
-gui.add(props, 'randomness').min(0).max(2).step(0.001).onFinishChange(generateGalaxy)
-gui.add(props, 'randomnessPower').min(1).max(10).step(0.001).onFinishChange(generateGalaxy)
-gui.addColor(props, 'insideColor').onFinishChange(generateGalaxy)
-gui.addColor(props, 'outsideColor').onFinishChange(generateGalaxy)
+// Points
+const particles = new THREE.Points(particlesGeometry, particlesMaterial)
+scene.add(particles)
 
 /**
  * Sizes
@@ -131,40 +128,93 @@ window.addEventListener('resize', () => {
 /**
  * Camera
  */
-// Base camera
-const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
-camera.position.z = 3
-scene.add(camera)
+// Group
+const cameraGroup = new THREE.Group()
+scene.add(cameraGroup)
 
-// Controls
-const controls = new OrbitControls(camera, canvas)
-controls.enableDamping = true
+// Base camera
+const camera = new THREE.PerspectiveCamera(35, sizes.width / sizes.height, 0.1, 100)
+camera.position.z = 6
+cameraGroup.add(camera)
 
 /**
  * Renderer
  */
 const renderer = new THREE.WebGLRenderer({
-  canvas: canvas
+  canvas: canvas,
+  alpha: true
 })
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
 /**
+ * Scroll
+ */
+let scrollY = window.scrollY
+let currentSection = 0
+
+window.addEventListener('scroll', () => {
+  scrollY = window.scrollY
+  const newSection = Math.round(scrollY / sizes.height)
+
+  if (newSection != currentSection) {
+    currentSection = newSection
+
+    gsap.to(
+      sectionMeshes[currentSection].rotation,
+      {
+        duration: 1.5,
+        ease: 'power2.inOut',
+        x: '+=6',
+        y: '+=3',
+        z: '+=1.5'
+      }
+    )
+  }
+})
+
+/**
+ * Cursor
+ */
+const cursor = {}
+cursor.x = 0
+cursor.y = 0
+
+window.addEventListener('mousemove', (event) => {
+  cursor.x = event.clientX / sizes.width - 0.5
+  cursor.y = event.clientY / sizes.height - 0.5
+})
+
+/**
  * Animate
  */
 const clock = new THREE.Clock()
+let previousTime = 0
 
-const animation = () => {
+const tick = () => {
   const elapsedTime = clock.getElapsedTime()
+  const deltaTime = elapsedTime - previousTime
+  previousTime = elapsedTime
 
-  // Update controls
-  controls.update()
+  // Animate camera
+  camera.position.y = - scrollY / sizes.height * objectsDistance
+
+  const parallaxX = cursor.x * 0.5
+  const parallaxY = - cursor.y * 0.5
+  cameraGroup.position.x += (parallaxX - cameraGroup.position.x) * 5 * deltaTime
+  cameraGroup.position.y += (parallaxY - cameraGroup.position.y) * 5 * deltaTime
+
+  // Animate meshes
+  for (const mesh of sectionMeshes) {
+    mesh.rotation.x += deltaTime * 0.1
+    mesh.rotation.y += deltaTime * 0.12
+  }
 
   // Render
   renderer.render(scene, camera)
 
   // Call tick again on the next frame
-  window.requestAnimationFrame(animation)
+  window.requestAnimationFrame(tick)
 }
 
-animation()
+tick()
