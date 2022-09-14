@@ -2,7 +2,8 @@ import './style.css'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import * as dat from 'lil-gui'
-
+import testVetexShader from "./shaders/test/vertex.glsl"
+import testFragmentShader from "./shaders/test/fragment.glsl"
 /**
  * Base
  */
@@ -16,13 +17,34 @@ const canvas = document.querySelector('#webgl')
 const scene = new THREE.Scene()
 
 /**
- * Test sphere
+ * Textures
  */
-const testSphere = new THREE.Mesh(
-  new THREE.SphereGeometry(1, 32, 32),
-  new THREE.MeshStandardMaterial()
-)
-scene.add(testSphere)
+const textureLoader = new THREE.TextureLoader()
+
+/**
+ * Test mesh
+ */
+// Geometry
+const geometry = new THREE.PlaneGeometry(1, 1, 32, 32)
+
+const count = geometry.attributes.position.count
+const randoms = new Float32Array(count)
+
+for (let i = 0; i < count; i++) {
+  randoms[i] = Math.random()
+}
+
+geometry.setAttribute('aRandom', new THREE.BufferAttribute(randoms, 1))
+
+// Material
+const material = new THREE.RawShaderMaterial({
+  vertexShader: testVetexShader,
+  fragmentShader: testFragmentShader
+})
+
+// Mesh
+const mesh = new THREE.Mesh(geometry, material)
+scene.add(mesh)
 
 /**
  * Sizes
@@ -47,19 +69,11 @@ window.addEventListener('resize', () => {
 })
 
 /**
- * Lights
- */
-const directionalLight = new THREE.DirectionalLight('#ffffff', 1)
-directionalLight.position.set(0.25, 3, - 2.25)
-const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight, 1, 0xffffff)
-scene.add(directionalLight, directionalLightHelper)
-
-/**
  * Camera
  */
 // Base camera
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
-camera.position.set(4, 1, - 4)
+camera.position.set(0.25, - 0.25, 1)
 scene.add(camera)
 
 // Controls
@@ -70,16 +84,7 @@ controls.enableDamping = true
  * Renderer
  */
 const renderer = new THREE.WebGLRenderer({
-  canvas: canvas,
-  antialias: true,
-  physicallyCorrectLights: true,
-  outputEncoding: THREE.sRGBEncoding,
-  toneMapping: THREE.CineonToneMapping,
-  toneMappingExposure: 1.75,
-  shadowMap: {
-    enabled: true,
-    type: THREE.PCFSoftShadowMap
-  },
+  canvas: canvas
 })
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -87,7 +92,11 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 /**
  * Animate
  */
+const clock = new THREE.Clock()
+
 const tick = () => {
+  const elapsedTime = clock.getElapsedTime()
+
   // Update controls
   controls.update()
 
