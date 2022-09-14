@@ -21,6 +21,8 @@ const scene = new THREE.Scene()
  */
 const textureLoader = new THREE.TextureLoader()
 
+const flagTexture = textureLoader.load("/textures/flag/flag.webp")
+
 /**
  * Test mesh
  */
@@ -39,11 +41,23 @@ geometry.setAttribute('aRandom', new THREE.BufferAttribute(randoms, 1))
 // Material
 const material = new THREE.RawShaderMaterial({
   vertexShader: testVetexShader,
-  fragmentShader: testFragmentShader
+  fragmentShader: testFragmentShader,
+  uniforms: {
+    uFrequency: { value: new THREE.Vector2(10, 5) },
+    uTime: { value: 0 },
+    uColor: { value: new THREE.Color("orange") },
+    uTexture: { value: flagTexture }
+  },
+  side: THREE.DoubleSide
 })
+
+gui.add(material.uniforms.uFrequency.value, 'x', 0, 20, 0.01).name("frequency x")
+gui.add(material.uniforms.uFrequency.value, 'y', 0, 20, 0.01).name("frequency y")
+gui.addColor(material.uniforms.uColor, 'value').name("color")
 
 // Mesh
 const mesh = new THREE.Mesh(geometry, material)
+mesh.scale.y = 2 / 3
 scene.add(mesh)
 
 /**
@@ -96,6 +110,8 @@ const clock = new THREE.Clock()
 
 const tick = () => {
   const elapsedTime = clock.getElapsedTime()
+
+  material.uniforms.uTime.value = elapsedTime
 
   // Update controls
   controls.update()
