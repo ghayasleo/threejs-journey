@@ -1,4 +1,5 @@
 varying vec2 vUv;
+varying float vRandom;
 
 #define PI 3.1415926535897932384626433832795
 
@@ -255,14 +256,19 @@ void main() {
     // float strength = sin(cnoise(vUv * 10.0) * 20.0);
 
     // 47
-    float strength = step(0.9, sin(cnoise(vUv * 10.0) * 20.0));
+    vec2 random = vec2(
+        vUv.x * (vRandom * 2.0),
+        vUv.y * (vRandom * 2.0)
+    );
+
+    float strength = step(sin(vRandom), sin(cnoise(random * (vRandom * 10.0)) * (vRandom * 30.0)));
 
     // clamp strength
-    strength = clamp(strength,  0.0, 1.0);
+    // strength = clamp(strength,  0.0, 1.0);
 
     // color version
     vec3 blackColor = vec3(0.0);
-    vec3 uvColor = vec3(vUv, 1.0);
+    vec3 uvColor = vec3(random, 6.0);
     vec3 mixedColor = mix(blackColor, uvColor, strength);
     gl_FragColor = vec4(mixedColor, 1.0);
 }

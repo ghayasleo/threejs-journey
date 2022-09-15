@@ -20,17 +20,28 @@ const scene = new THREE.Scene()
  * Test mesh
  */
 // Geometry
-const geometry = new THREE.PlaneGeometry(1, 1, 32, 32)
+const geometry = new THREE.BoxGeometry(0.8, 0.8, 0.8)
+
+const debug = {
+  random: Math.random()
+};
 
 // Material
 const material = new THREE.ShaderMaterial({
   vertexShader: testVertexShader,
   fragmentShader: testFragmentShader,
-  side: THREE.DoubleSide
+  side: THREE.DoubleSide,
+  uniforms: {
+    uRandom: { value: debug.random }
+  }
 })
+
+console.log(material.uniforms.uRandom)
 
 // Mesh
 const mesh = new THREE.Mesh(geometry, material)
+mesh.renderOrder = 'YXZ'
+// mesh.rotation.set(1, 1, 0)
 scene.add(mesh)
 
 /**
@@ -76,12 +87,22 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
+const clock = new THREE.Clock()
+
+window.scene = scene;
+
 /**
  * Animate
  */
 const tick = () => {
+  const elapsedTime = clock.getElapsedTime()
+
+  // console.log(Math.sin(elapsedTime * 0.01))
+
   // Update controls
-  controls.update()
+  controls.update();
+
+  material.uniforms.uRandom.value = (Math.sin(elapsedTime * 0.1));
 
   // Render
   renderer.render(scene, camera)
