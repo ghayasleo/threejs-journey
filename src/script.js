@@ -1,20 +1,21 @@
 import './style.css'
 import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
+import { DotScreenPass } from 'three/examples/jsm/postprocessing/DotScreenPass';
+import { GlitchPass } from 'three/examples/jsm/postprocessing/GlitchPass'
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass'
+import { RGBShiftShader } from 'three/examples/jsm/shaders/RGBShiftShader'
+import { GammaCorrectionShader } from 'three/examples/jsm/shaders/GammaCorrectionShader'
 import * as dat from 'lil-gui'
-import galaxyVertexShader from "./shaders/galaxy/vertex.glsl"
-import galaxyFragmentShader from "./shaders/galaxy/fragment.glsl"
-import { GUIController } from 'dat.gui'
 
 /**
  * Base
  */
 // Debug
 const gui = new dat.GUI()
-
-const debug = {
-  pointType: 0
-}
 
 // Canvas
 const canvas = document.querySelector('#webgl')
@@ -23,110 +24,66 @@ const canvas = document.querySelector('#webgl')
 const scene = new THREE.Scene()
 
 /**
- * Galaxy
+ * Loaders
  */
-const parameters = {}
-parameters.count = 200000
-parameters.size = 0.005
-parameters.radius = 5
-parameters.branches = 3
-parameters.spin = 1
-parameters.randomness = 0.5
-parameters.randomnessPower = 3
-parameters.insideColor = '#ff6030'
-parameters.outsideColor = '#1b3984'
+const gltfLoader = new GLTFLoader()
+const cubeTextureLoader = new THREE.CubeTextureLoader()
+const textureLoader = new THREE.TextureLoader()
 
-let geometry = null,
-  material = null,
-  points = null
-
-const generateGalaxy = () => {
-  if (points !== null) {
-    geometry.dispose()
-    material.dispose()
-    scene.remove(points)
-  }
-
-  /**
-   * Geometry
-   */
-  geometry = new THREE.BufferGeometry()
-
-  const positions = new Float32Array(parameters.count * 3)
-  const colors = new Float32Array(parameters.count * 3)
-  const scales = new Float32Array(parameters.count)
-  const randomness = new Float32Array(parameters.count * 3)
-
-  const insideColor = new THREE.Color(parameters.insideColor)
-  const outsideColor = new THREE.Color(parameters.outsideColor)
-
-  for (let i = 0; i < parameters.count; i++) {
-    const i3 = i * 3
-
-    // Position
-    const radius = Math.random() * parameters.radius
-
-    const branchAngle = (i % parameters.branches) / parameters.branches * Math.PI * 2
-
-    positions[i3] = Math.cos(branchAngle) * radius + 0
-    positions[i3 + 1] = 0
-    positions[i3 + 2] = Math.sin(branchAngle) * radius + 0
-
-
-    const randomX = Math.pow(Math.random(), parameters.randomnessPower) * (Math.random() < 0.5 ? 1 : - 1) * parameters.randomness * radius
-    const randomY = Math.pow(Math.random(), parameters.randomnessPower) * (Math.random() < 0.5 ? 1 : - 1) * parameters.randomness * radius
-    const randomZ = Math.pow(Math.random(), parameters.randomnessPower) * (Math.random() < 0.5 ? 1 : - 1) * parameters.randomness * radius
-
-    randomness[i3] = randomX
-    randomness[i3 + 1] = randomY
-    randomness[i3 + 2] = randomZ
-
-    // Color
-    const mixedColor = insideColor.clone()
-    mixedColor.lerp(outsideColor, radius / parameters.radius)
-
-    colors[i3] = mixedColor.r
-    colors[i3 + 1] = mixedColor.g
-    colors[i3 + 2] = mixedColor.b
-
-    scales[i] = Math.random()
-  }
-
-  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
-  geometry.setAttribute('aScale', new THREE.BufferAttribute(scales, 1))
-  geometry.setAttribute('aRandomness', new THREE.BufferAttribute(randomness, 3))
-
-  /**
-   * Material
-   */
-  material = new THREE.ShaderMaterial({
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-    vertexColors: true,
-    vertexShader: galaxyVertexShader,
-    fragmentShader: galaxyFragmentShader,
-    uniforms: {
-      uTime: { value: 0 },
-      uSize: { value: 2.0 * renderer.getPixelRatio() },
-      uPointType: { value: debug.pointType }
+/**
+ * Update all materials
+ */
+const updateAllMaterials = () => {
+  scene.traverse((child) => {
+    if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {
+      child.material.envMapIntensity = 2.5
+      child.material.needsUpdate = true
+      child.castShadow = true
+      child.receiveShadow = true
     }
   })
-
-  /**
-   * Points
-   */
-  points = new THREE.Points(geometry, material)
-  scene.add(points)
 }
 
-gui.add(parameters, 'count').min(100).max(1000000).step(100).onFinishChange(generateGalaxy)
-gui.add(parameters, 'radius').min(0.01).max(20).step(0.01).onFinishChange(generateGalaxy)
-gui.add(parameters, 'branches').min(2).max(20).step(1).onFinishChange(generateGalaxy)
-gui.add(parameters, 'randomness').min(0).max(2).step(0.001).onFinishChange(generateGalaxy)
-gui.add(parameters, 'randomnessPower').min(1).max(10).step(0.001).onFinishChange(generateGalaxy)
-gui.addColor(parameters, 'insideColor').onFinishChange(generateGalaxy)
-gui.addColor(parameters, 'outsideColor').onFinishChange(generateGalaxy)
+/**
+ * Environment map
+ */
+const environmentMap = cubeTextureLoader.load([
+  '/textures/environmentMaps/0/px.png',
+  '/textures/environmentMaps/0/nx.png',
+  '/textures/environmentMaps/0/py.png',
+  '/textures/environmentMaps/0/ny.png',
+  '/textures/environmentMaps/0/pz.png',
+  '/textures/environmentMaps/0/nz.png'
+])
+environmentMap.encoding = THREE.sRGBEncoding
+
+scene.background = environmentMap
+scene.environment = environmentMap
+
+/**
+ * Models
+ */
+gltfLoader.load(
+  '/models/DamagedHelmet/glTF/DamagedHelmet.gltf',
+  (gltf) => {
+    gltf.scene.scale.set(2, 2, 2)
+    gltf.scene.rotation.y = Math.PI * 0.5
+    scene.add(gltf.scene)
+
+    updateAllMaterials()
+  }
+)
+
+/**
+ * Lights
+ */
+const directionalLight = new THREE.DirectionalLight('#ffffff', 3)
+directionalLight.castShadow = true
+directionalLight.shadow.mapSize.set(1024, 1024)
+directionalLight.shadow.camera.far = 15
+directionalLight.shadow.normalBias = 0.05
+directionalLight.position.set(0.25, 3, - 2.25)
+scene.add(directionalLight)
 
 /**
  * Sizes
@@ -148,6 +105,9 @@ window.addEventListener('resize', () => {
   // Update renderer
   renderer.setSize(sizes.width, sizes.height)
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+
+  effectComposer.setSize(sizes.width, sizes.height)
+  effectComposer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 })
 
 /**
@@ -155,9 +115,7 @@ window.addEventListener('resize', () => {
  */
 // Base camera
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
-camera.position.x = 3
-camera.position.y = 3
-camera.position.z = 3
+camera.position.set(4, 1, - 4)
 scene.add(camera)
 
 // Controls
@@ -168,14 +126,39 @@ controls.enableDamping = true
  * Renderer
  */
 const renderer = new THREE.WebGLRenderer({
-  canvas: canvas
+  canvas: canvas,
+  antialias: true
 })
+renderer.shadowMap.enabled = true
+renderer.shadowMap.type = THREE.PCFShadowMap
+renderer.physicallyCorrectLights = true
+renderer.outputEncoding = THREE.sRGBEncoding
+renderer.toneMapping = THREE.ReinhardToneMapping
+renderer.toneMappingExposure = 1.5
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
-generateGalaxy();
-gui.add(debug, 'pointType', { Dics: 0, "Diffuse point": 1, "Light point": 2 }).onChange(() => material.uniforms.uPointType.value = debug.pointType);
-gui.add(material.uniforms.uSize, "value", 0.01, 10, 0.001).name("Point size");
+const effectComposer = new EffectComposer(renderer);
+effectComposer.setSize(sizes.width, sizes.height)
+effectComposer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+
+const renderPass = new RenderPass(scene, camera)
+effectComposer.addPass(renderPass)
+
+const dotScreenPass = new DotScreenPass()
+dotScreenPass.enabled = false
+effectComposer.addPass(dotScreenPass)
+
+const glitchPass = new GlitchPass()
+glitchPass.goWild = false
+glitchPass.enabled = false
+effectComposer.addPass(glitchPass)
+
+const rgbShiftPass = new ShaderPass(RGBShiftShader)
+effectComposer.addPass(rgbShiftPass)
+
+const gamaCorrectionPass = new ShaderPass(GammaCorrectionShader)
+effectComposer.addPass(gamaCorrectionPass)
 
 /**
  * Animate
@@ -185,13 +168,12 @@ const clock = new THREE.Clock()
 const tick = () => {
   const elapsed = clock.getElapsedTime()
 
-  material.uniforms.uTime.value = elapsed;
-
   // Update controls
   controls.update()
 
   // Render
-  renderer.render(scene, camera)
+  // renderer.render(scene, camera)
+  effectComposer.render()
 
   // Call tick again on the next frame
   window.requestAnimationFrame(tick)
